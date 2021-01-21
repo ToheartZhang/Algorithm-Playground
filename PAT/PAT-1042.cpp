@@ -23,7 +23,6 @@ int main() {
         cards1[i] = i;
     }
 
-    // cards[a[nowPos]] = nowVal;
     for (int k = 1; k <= n; k++) {
         for (int i = 1; i <= 54; i++) {
             cards2[a[i]] = cards1[i];
