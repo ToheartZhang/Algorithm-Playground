@@ -7,7 +7,6 @@
 #include <cmath>
 #include <vector>
 
-
 using namespace std;
 
 const int MAXN = 2010;
