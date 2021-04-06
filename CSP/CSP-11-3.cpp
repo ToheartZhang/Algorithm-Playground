@@ -59,7 +59,8 @@ void query(Node node, vector<string>& strs) {
 			puts("NOTEXIST");
 			return;
 		}
-		node = node.obj[str];
+		auto t = node.obj[str];
+		node = t;
 	}
 	if (node.type == false) {
 		printf("STRING %s\n", node.val.c_str());

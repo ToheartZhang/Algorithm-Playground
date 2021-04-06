@@ -1,74 +1,88 @@
 #include <cstdio>
 #include <iostream>
-#include <string>
 #include <vector>
+#include <sstream>
 using namespace std;
 
 const int MAXN = 110;
-struct Rule {
-	string p;
-	string r;
-} a[MAXN];
 int n, m;
+struct Rule {
+	vector<string> p; 
+	string r;
+	bool isEnd;
+} rules[MAXN];
 
-string get_num(string& str) {
+vector<string> work(const string& str) {
+	vector<string> items;
+	for (int i = 1; i < str.size(); i++) {
+		int j = i + 1;
+		while (j < str.size() && str[j] != '/')	j++;
+//		if (j < str.size())
+//			items.push_back(str.substr(i, j - i + 1));
+//		else
+		items.push_back(str.substr(i, j - i));
+		i = j;
+	}
+	return items;
+}
+
+string getNum(const string& str) {
 	string ret;
 	for (auto& c : str) {
-		if (c >= '0' && c <= '9') {
-			ret += c;
-		} else {
+		if (isdigit(c))	ret += c;
+		else {
 			ret.clear();
 			return ret;
 		}
 	}
 	int i = 0;
-	for (; i + 1 < ret.size(); i++) {
-		if (ret[i] != '0') {
-			break;
-		}
-	}
+	while (i + 1 < str.size() && str[i] == '0')	i++;
 	return ret.substr(i);
 }
 
-vector<string> match(string& p, string& str) {
+vector<string> check(const vector<string>& items, const vector<string>& p, bool isPEnd, bool isIEnd) {
 	vector<string> ret(1);
-	int i = 1, j = 1;
-	while (i < p.size() && j < str.size()) {
-		int u = i + 1, v = j + 1;
-		while (u < p.size() && p[u] != '/')	u++;
-		while (v < str.size() && str[v] != '/')	v++;
-		string subp = p.substr(i, u - i);
-		string substr = str.substr(j, v - j);
-		if (subp == "<int>") {
-			auto num = get_num(substr);
-			if (num.size()) {
+	int i = 0;
+	for (i = 0; i < p.size() && i < items.size(); i++) {
+		if (p[i] == "<str>") {
+			ret.push_back(items[i]);
+		} else if (p[i] == "<int>") {
+			auto num = getNum(items[i]);
+			if (!num.empty()) {
 				ret.push_back(num);
 			} else {
 				ret.clear();
 				return ret;
 			}
-		} else if (subp == "<str>") {
-			ret.push_back(substr);
-		} else if (subp == "<path>") {
-			ret.push_back(str.substr(j));
+		} else if (p[i] == "<path>") {
+			string temp;
+			for (int j = i; j < items.size(); j++) {
+				temp += items[j];
+				if (j != items.size() - 1 || isIEnd)	temp += "/";
+			}
+			ret.push_back(temp);
 			return ret;
-		} else if (subp != substr) {
+		} else if (items[i] != p[i]) {
 			ret.clear();
 			return ret;
 		}
-		i = u + 1, j = v + 1;
 	}
-	if (i - p.size() != j - str.size()) ret.clear();	// ÅÐ¶ÏÊÇ·ñ½âÎöÈ« 
+	if (p.size() != items.size() || isPEnd != isIEnd) {
+		ret.clear();	
+		return ret;
+	}
 	return ret;
 }
 
-void work(string& str) {
+void query(const string& str) {
+	bool isEnd = str.back() == '/';
+	auto queryItems = work(str);
 	for (int i = 0; i < n; i++) {
-		auto result = match(a[i].p, str);
-		if (result.size()) {
-			cout << a[i].r;
-			for (int j = 1; j < result.size(); j++) {
-				cout << " " << result[j];
+		auto res = check(queryItems, rules[i].p, rules[i].isEnd, isEnd);
+		if (!res.empty()) {
+			cout << rules[i].r;
+			for (int j = 1; j < res.size(); j++) {
+				cout << " " << res[j];
 			}
 			cout << endl;
 			return;
@@ -80,12 +94,19 @@ void work(string& str) {
 int main() {
 	scanf("%d%d", &n, &m);
 	for (int i = 0; i < n; i++) {
-		cin >> a[i].p >> a[i].r;
+		string str;
+		cin >> str >> rules[i].r;
+		rules[i].isEnd = str.back() == '/';
+		rules[i].p = work(str);
+//		for (auto& item : rules[i].p) {
+//			cout << item << " ";
+//		}
+//		cout << endl;
 	}
-	while (m--) {
+	while(m--) {
 		string str;
 		cin >> str;
-		work(str);
+		query(str);
 	}
 	return 0;
 }
