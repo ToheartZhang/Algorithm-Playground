@@ -4,20 +4,26 @@
 using namespace std;
 
 const int MAXN = 100010;
-long long BASE = 256*256*256;
+const long long BASE = 256*256*256;
 int n;
 struct Ip {
 	long long val;
 	int len;
-} a[MAXN], b[MAXN], c[MAXN];
-int cnt, cnt1;
+	bool operator< (const Ip& rhs) {
+		if (val != rhs.val)	return val < rhs.val;
+		return len < rhs.len;
+	}
+} ips[MAXN];
 
-bool cmp(Ip& l, Ip& r) {
-	if (l.val != r.val)	return l.val < r.val;
-	return l.len < r.len;
+int parseNum(const string& str) {
+	int ret = 0;
+	for (auto& c : str) {
+		ret = ret*10 + c - '0';
+	}
+	return ret;
 }
 
-void output_ip(Ip ip) {
+void outputIp(Ip ip) {
 	long long base = BASE;
 	for (int i = 0; i < 4; i++) {
 		if (i != 0)	printf("."); 
@@ -28,70 +34,90 @@ void output_ip(Ip ip) {
 	printf("/%d\n", ip.len);
 }
 
+long long getPrefix(long long val, int len) {
+	int delta = 32 - len;
+	return val >> delta;
+}
+
+bool isSubset(const Ip& a, const Ip& b) {
+	long long preA = getPrefix(a.val, a.len);
+	long long preB = getPrefix(b.val, a.len);
+	return preA == preB;
+}
+
+Ip mergeIp(const Ip& a, const Ip& b) {
+	Ip ret;
+	ret.len = -1;
+	long long preA = getPrefix(a.val, a.len - 1);
+	long long preB = getPrefix(b.val, b.len - 1);
+	if (a.len != b.len || preA != preB)	return ret;
+	ret.len = a.len - 1;
+	ret.val = preA << (32 - ret.len);
+	return ret;
+}
+
 int main() {
 	scanf("%d", &n);
 	getchar();
 	for (int i = 0; i < n; i++) {
 		string str;
 		getline(cin, str);
-		int num = 0;
-		long long base = BASE; 
+		int dotCnt = 0;
 		for (int j = 0; j < str.size(); j++) {
-			if (str[j] == '.') {
-				a[i].val += num*base;
-				base /= 256;	
-				a[i].len += 8;	
-				num = 0;
-				continue;
-			} else if (str[j] == '/') {
-				a[i].val += num*base;
-				num = 0;
-				base /= 256;	
-				int now = 0;
-				for (int k = j + 1; k < str.size(); k++) {
-					now = now*10 + str[k] - '0';
+			int k = j + 1;
+			while (k < str.size() && str[k] != '.' && str[k] != '/')	k++;
+			auto num = parseNum(str.substr(j, k - j));
+			if (k == str.size()) {
+				ips[i].val = ips[i].val*256 + num;
+				ips[i].len = (dotCnt + 1)*8;
+				if (dotCnt != 3) {
+					for (int l = dotCnt; l < 3; l++) {
+						ips[i].val *= 256;
+					}
 				}
-				a[i].len = now;
+			} else if (str[k] == '.') {
+				dotCnt++;
+				ips[i].val = ips[i].val*256 + num;
+			} else {
+				ips[i].val = ips[i].val*256 + num;
+				ips[i].len = parseNum(str.substr(k + 1));
+				if (dotCnt != 3) {
+					for (int l = dotCnt; l < 3; l++) {
+						ips[i].val *= 256;
+					}
+				}
 				break;
 			}
-			num = num*10 + str[j] - '0';
+			j = k;
 		}
-		if (num != 0) {
-			a[i].val += num*base;
-			a[i].len += 8;
+	}
+	sort(ips, ips + n);
+	
+	int k = 1;
+	for (int i = 1; i < n; i++) {
+		if (!isSubset(ips[k - 1], ips[i])) {
+			ips[k++] = ips[i];
 		}
-//		output_ip(a[i]);
 	}
-	sort(a, a + n, cmp);
+	int cnt = k;
 	
-	int i = 0;
-	while (i < n) {
-		int j = i + 1;
-		while (j < n && ((a[i].val & a[j].val) == a[i].val)) {
-			j++;
-		} 
-		b[cnt++] = a[i];
-		i = j;
+	k = 1;
+	for (int i = 1; i < cnt; i++) {
+		ips[k++] = ips[i];
+		while (k >= 2) {
+			auto temp = mergeIp(ips[k - 2], ips[k - 1]);
+			if (temp.len != -1) {
+				k -= 2;
+				ips[k++] = temp;
+			} else {
+				break;
+			}
+		}
 	}
-	
-//	i = 1;
-//	int j = 1;
-//	c[0] = b[0];
-//	while (i < cnt) {
-//		if (i < cnt && c[j - 1].len == b[i].len && (c[j-1].val & b[i].val) == c[j - 1].val) {
-//			c[j - 1].len--;
-//			if (j == 1) {
-//				j++;
-//			} else {
-//				j--;
-//			}
-//		} else {
-//			
-//		}
-//	}
+	cnt = k;
 	
 	for (int i = 0; i < cnt; i++) {
-		output_ip(b[i]);
-	}
+		outputIp(ips[i]);
+	} 
 	return 0;
-}
+} 
